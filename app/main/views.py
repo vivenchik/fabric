@@ -3,9 +3,10 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
+from datetime import datetime
 
-from .models import Poll, Question
-from .serializer import PollSerializer, QuestionSerializer
+from .models import Poll, Question, Answer
+from .serializer import PollSerializer, QuestionSerializer, UserPollSerializer, AnswerSerializer, AnswerCreateSerializer
 
 
 def success_response(id):
@@ -103,4 +104,29 @@ class QuestionView(APIView):
         if serializer.is_valid(raise_exception=True):
             question_in_base = serializer.save()
             return Response(success_response(question_in_base.id))
+        return Response(error_response())
+
+
+class UserPollViewAll(APIView):
+    def get(self, request):
+        polls = Poll.objects.filter(end_date__gte=datetime.now())
+        serializer = UserPollSerializer(polls, many=True)
+        return Response(serializer.data)
+
+
+class UserAnswerViewAll(APIView):
+    def get(self, request, user):
+        answers = Answer.objects.filter(user=user)
+        serializer = AnswerSerializer(answers, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, user):
+        answer = request.data.get('answer')
+        answer['user'] = user
+        if Question.objects.get(id=answer['question']).type == 0:
+            answer['answer'] = [answer['answer']]
+        serializer = AnswerCreateSerializer(data=answer)
+        if serializer.is_valid(raise_exception=True):
+            answer_in_base = serializer.save()
+            return Response(success_response(answer_in_base.id))
         return Response(error_response())

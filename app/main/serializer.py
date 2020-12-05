@@ -1,14 +1,12 @@
 from rest_framework import serializers
 
-from .models import Poll, Question
+from .models import Poll, Question, Answer
 
 
-class PollSerializer(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
-    name = serializers.CharField()
-    begin_date = serializers.DateField()
-    end_date = serializers.DateField()
-    description = serializers.CharField()
+class PollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Poll
+        fields = ['id', 'name', 'begin_date', 'end_date', 'description']
 
     def create(self, validated_data):
         return Poll.objects.create(**validated_data)
@@ -21,11 +19,10 @@ class PollSerializer(serializers.Serializer):
         return poll
 
 
-class QuestionSerializer(serializers.Serializer):
-    id = serializers.IntegerField(required=False)
-    poll = serializers.SerializerMethodField()
-    text = serializers.CharField()
-    type = serializers.IntegerField()
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['id', 'poll', 'text', 'type', 'choices']
 
     def get_poll(self, obj):
         return obj.poll.id
@@ -38,3 +35,53 @@ class QuestionSerializer(serializers.Serializer):
         question.type = validated_data.get('type', question.type)
         question.save()
         return question
+
+
+class UserQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['text', 'type', 'choices']
+
+
+class UserPollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Poll
+        fields = ['name', 'begin_date', 'end_date', 'description', 'questions']
+
+    questions = UserQuestionSerializer(many=True, read_only=True)
+
+
+class UserSimplePollSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Poll
+        fields = ['name', 'description']
+
+
+class UserExtendedQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['id', 'poll', 'text', 'type', 'choices']
+
+    poll = UserSimplePollSerializer(many=False, read_only=True)
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['question', 'answer']
+
+    question = UserExtendedQuestionSerializer(many=False, read_only=True)
+
+
+class AnswerCreateSerializer(serializers.ModelSerializer):
+    def validate(self, data):
+        if data['question'].type in (0, 1) and len(data['answer']) != 1:
+            raise serializers.ValidationError('You cant choose multiple.')
+        return data
+
+    class Meta:
+        model = Answer
+        fields = ['user', 'question', 'answer']
+
+    def create(self, validated_data):
+        return Answer.objects.create(**validated_data)

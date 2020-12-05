@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 
 class Poll(models.Model):
@@ -18,9 +19,16 @@ class Question(models.Model):
         (2, 'multiple_choice'),
     ]
 
-    poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
+    poll = models.ForeignKey(Poll, related_name='questions', on_delete=models.CASCADE)
     text = models.TextField()
     type = models.IntegerField(choices=TYPE_CHOICES)
+    choices = ArrayField(models.CharField(max_length=30), null=True)
 
     def __str__(self):
         return f'{self.poll.name} {self.text}'
+
+
+class Answer(models.Model):
+    user = models.IntegerField()
+    question = models.ForeignKey(Question, on_delete=models.DO_NOTHING)
+    answer = ArrayField(models.TextField())
