@@ -32,3 +32,6 @@ class Answer(models.Model):
     user = models.IntegerField()
     question = models.ForeignKey(Question, on_delete=models.DO_NOTHING)
     answer = ArrayField(models.TextField())
+
+    class Meta:
+        unique_together = (('user', 'question'),)

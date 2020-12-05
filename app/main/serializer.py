@@ -75,8 +75,10 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 class AnswerCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
+        if len(data['answer']) == 0:
+            raise serializers.ValidationError('You must choose')
         if data['question'].type in (0, 1) and len(data['answer']) != 1:
-            raise serializers.ValidationError('You cant choose multiple.')
+            raise serializers.ValidationError('You cant choose multiple')
         return data
 
     class Meta:
